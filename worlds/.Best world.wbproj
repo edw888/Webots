@@ -1,0 +1,14 @@
+Webots Project File version R2023a
+perspectives: 000000ff00000000fd0000000100000001000002c1000003cefc0200000002fb0000001400540065007800740045006400690074006f00720100000016000002b60000008700fffffffb0000001a0043006f006e0073006f006c00650041006c006c0041006c006c01000002ce000001160000003900ffffff000004bd000003ce00000001000000020000000100000008fc00000000
+simulationViewPerspectives: 000000ff000000010000000200000185000003360100000002010000000100
+sceneTreePerspectives: 000000ff00000001000000030000001e000002d1000000fa0100000002010000000200
+maximizedDockId: -1
+centralWidgetVisible: 1
+projectionMode: PERSPECTIVE
+renderingMode: PLAIN
+orthographicViewHeight: 2.26275
+textFiles: 0 "controllers/gps_position/gps_position.py" "controllers/Supervisor/Supervisor.py" "controllers/local_position/local_position.py" "controllers/global_position/global_position.py" "old.txt"
+globalOptionalRendering: RangeFinderFrustums::CoordinateSystem
+consoles: Console:All:All
+renderingDevicePerspectives: r3:camera;1;1;0;0
+renderingDevicePerspectives: r4:camera;1;1;0;0

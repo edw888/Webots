@@ -1,0 +1,487 @@
+#VRML_SIM R2023a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/apartment_structure/protos/Wall.proto"
+
+WorldInfo {
+}
+Viewpoint {
+  orientation -0.27584251544609023 0.17794352914950454 0.9445882738559658 1.8582019724627294
+  position 0.96262452890132 -3.713150090757811 2.1674479174715
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  translation 0 0 -0.1
+  rotation 0 1 0 0
+  floorSize 10 10
+}
+DEF r0 Robot {
+  children [
+    DistanceSensor {
+    }
+    Solid {
+      children [
+        Receiver {
+        }
+      ]
+      name "receiver"
+    }
+    Solid {
+      children [
+        Emitter {
+          channel 99
+        }
+      ]
+      name "emiter0"
+    }
+    Solid {
+      children [
+        GPS {
+          type "laser"
+        }
+      ]
+      name "Gp1s"
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis -1 0 0
+        anchor 0.05 0 -0.03
+      }
+      device [
+        DEF motor1 RotationalMotor {
+          name "motor1"
+        }
+        DEF pos1 PositionSensor {
+          name "pos1"
+        }
+      ]
+      endPoint Solid {
+        translation 0.04999999999999982 1.2888069679594377e-17 -0.030000000000000027
+        rotation 0.707388225243412 3.554419480969814e-09 -0.7068252250641425 3.141590000330801
+        children [
+          DEF wheel Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.01
+              radius 0.03
+            }
+          }
+        ]
+        boundingObject USE wheel
+        physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis -1 0 0
+        anchor -0.05 0 -0.03
+      }
+      device [
+        DEF motor2 RotationalMotor {
+          name "motor2"
+        }
+        DEF pos2 PositionSensor {
+          name "pos2"
+        }
+      ]
+      endPoint Solid {
+        translation -0.04999999999999982 3.4308633262925687e-18 -0.030000000000000027
+        rotation 0.7073882252434184 3.5194811509627107e-09 -0.7068252250641365 3.141590000260866
+        children [
+          DEF wheel Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.01
+              radius 0.03
+            }
+          }
+        ]
+        name "solid(1)"
+        boundingObject USE wheel
+        physics Physics {
+        }
+      }
+    }
+    DEF body Transform {
+      children [
+        Shape {
+          appearance PBRAppearance {
+          }
+          geometry Cylinder {
+            height 0.1
+            radius 0.05
+          }
+        }
+      ]
+    }
+  ]
+  name "r0"
+  boundingObject USE body
+  physics Physics {
+  }
+  controller "gps_position"
+  controllerArgs [
+    "peepo"
+  ]
+}
+DEF r1 Robot {
+  translation 0.22 0 0
+  children [
+    Solid {
+      children [
+        Receiver {
+          channel 1
+        }
+      ]
+      name "receiver"
+    }
+    Solid {
+      children [
+        Emitter {
+          channel 99
+        }
+      ]
+      name "emiter1"
+    }
+    Solid {
+      children [
+        GPS {
+          type "laser"
+        }
+      ]
+      name "Gp1s"
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis -1 0 0
+        anchor 0.05 0 -0.03
+      }
+      device [
+        DEF motor1 RotationalMotor {
+          name "motor1"
+        }
+        DEF pos1 PositionSensor {
+          name "pos1"
+        }
+      ]
+      endPoint Solid {
+        translation 0.050000000000000044 0 -0.030000000000000027
+        rotation 0.7073882252434113 3.396995121802427e-09 -0.7068252250641434 3.1415900000157007
+        children [
+          DEF wheel Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.01
+              radius 0.03
+            }
+          }
+        ]
+        boundingObject USE wheel
+        physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis -1 0 0
+        anchor -0.05 0 -0.03
+      }
+      device [
+        DEF motor2 RotationalMotor {
+          name "motor2"
+        }
+        DEF pos2 PositionSensor {
+          name "pos2"
+        }
+      ]
+      endPoint Solid {
+        translation -0.050000000000000044 0 -0.030000000000000027
+        rotation 0.7073882252434113 3.39545567669793e-09 -0.7068252250641434 3.141590000012619
+        children [
+          DEF wheel Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.01
+              radius 0.03
+            }
+          }
+        ]
+        name "solid(1)"
+        boundingObject USE wheel
+        physics Physics {
+        }
+      }
+    }
+    DEF body Transform {
+      children [
+        Shape {
+          appearance PBRAppearance {
+          }
+          geometry Cylinder {
+            height 0.1
+            radius 0.05
+          }
+        }
+      ]
+    }
+  ]
+  name "r1"
+  boundingObject USE body
+  physics Physics {
+  }
+  controller "gps_position"
+  controllerArgs [
+    "peepo"
+  ]
+}
+DEF r2 Robot {
+  translation 0.43 0 0
+  children [
+    Solid {
+      children [
+        Receiver {
+          channel 2
+        }
+      ]
+      name "receiver"
+    }
+    Solid {
+      children [
+        Emitter {
+          channel 99
+        }
+      ]
+      name "emiter2"
+    }
+    Solid {
+      children [
+        GPS {
+          type "laser"
+        }
+      ]
+      name "Gp1s"
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis -1 0 0
+        anchor 0.05 0 -0.03
+      }
+      device [
+        DEF motor1 RotationalMotor {
+          name "motor1"
+        }
+        DEF pos1 PositionSensor {
+          name "pos1"
+        }
+      ]
+      endPoint Solid {
+        translation 0.050000000000000266 0 -0.030000000000000027
+        rotation 0.7073882252434113 3.396995036673241e-09 -0.7068252250641434 3.1415900000157
+        children [
+          DEF wheel Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.01
+              radius 0.03
+            }
+          }
+        ]
+        boundingObject USE wheel
+        physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis -1 0 0
+        anchor -0.05 0 -0.03
+      }
+      device [
+        DEF motor2 RotationalMotor {
+          name "motor2"
+        }
+        DEF pos2 PositionSensor {
+          name "pos2"
+        }
+      ]
+      endPoint Solid {
+        translation -0.050000000000000266 0 -0.030000000000000027
+        rotation 0.7073882252434113 3.3954555530367248e-09 -0.7068252250641434 3.1415900000126187
+        children [
+          DEF wheel Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.01
+              radius 0.03
+            }
+          }
+        ]
+        name "solid(1)"
+        boundingObject USE wheel
+        physics Physics {
+        }
+      }
+    }
+    DEF body Transform {
+      children [
+        Shape {
+          appearance PBRAppearance {
+          }
+          geometry Cylinder {
+            height 0.1
+            radius 0.05
+          }
+        }
+      ]
+    }
+  ]
+  name "r2"
+  boundingObject USE body
+  physics Physics {
+  }
+  controller "gps_position"
+  controllerArgs [
+    "peepo"
+  ]
+}
+DEF r3 Robot {
+  translation 0.72 0 -0.01
+  children [
+    Solid {
+      children [
+        Receiver {
+          channel 3
+        }
+      ]
+      name "receiver"
+    }
+    Solid {
+      children [
+        Emitter {
+          channel 99
+        }
+      ]
+      name "emiter2"
+    }
+    Solid {
+      children [
+        GPS {
+          type "laser"
+        }
+      ]
+      name "Gp1s"
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis -1 0 0
+        anchor 0.05 0 -0.03
+      }
+      device [
+        DEF motor1 RotationalMotor {
+          name "motor1"
+        }
+        DEF pos1 PositionSensor {
+          name "pos1"
+        }
+      ]
+      endPoint Solid {
+        translation 0.050000000000000266 0 -0.030000000000000027
+        rotation 0.7073882252434113 3.396995036673241e-09 -0.7068252250641434 3.1415900000157
+        children [
+          DEF wheel Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.01
+              radius 0.03
+            }
+          }
+        ]
+        boundingObject USE wheel
+        physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis -1 0 0
+        anchor -0.05 0 -0.03
+      }
+      device [
+        DEF motor2 RotationalMotor {
+          name "motor2"
+        }
+        DEF pos2 PositionSensor {
+          name "pos2"
+        }
+      ]
+      endPoint Solid {
+        translation -0.050000000000000266 0 -0.030000000000000027
+        rotation 0.7073882252434113 3.3954555530367248e-09 -0.7068252250641434 3.1415900000126187
+        children [
+          DEF wheel Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.01
+              radius 0.03
+            }
+          }
+        ]
+        name "solid(1)"
+        boundingObject USE wheel
+        physics Physics {
+        }
+      }
+    }
+    DEF body Transform {
+      children [
+        Shape {
+          appearance PBRAppearance {
+          }
+          geometry Cylinder {
+            height 0.1
+            radius 0.05
+          }
+        }
+      ]
+    }
+  ]
+  name "r3"
+  boundingObject USE body
+  physics Physics {
+  }
+  controller "gps_position"
+  controllerArgs [
+    "peepo"
+  ]
+}
+Robot {
+  children [
+    Receiver {
+      channel 99
+    }
+    Emitter {
+      channel 3
+    }
+  ]
+  name "supervisor"
+  controller "Supervisor"
+  supervisor TRUE
+}
+Wall {
+  translation -1.12 0 0
+  size 0.2 1 0.2
+}

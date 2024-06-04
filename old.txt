@@ -1,0 +1,274 @@
+"""drive_robot controller."""
+
+# You may need to import some classes of the controller module. Ex:
+#  from controller import Robot, Motor, DistanceSensor
+from controller import Robot
+import math
+import random
+
+timestep = 64 
+max_iterations = 100
+layers = 2
+max_speed = 6.28 # #Angular velocity
+num_robots = 3
+
+class Neuron:
+    def __init__(self):
+        self.pos = [0.0] * layers
+        self.vel = [0.0] * layers
+        self.pPos = [0.0] * layers
+        self.pFit = float('inf')
+
+# Function to calculate the fitness of a robot
+def calculate_fitness(position):
+    # Fitness function calculation based on the problem domain
+    # Modify this function according to your specific problem
+    # Distance from origin:
+    return math.sqrt(position[0] ** 2 + position[1] ** 2)
+# Function to update the robot's velocity
+def update_velocity(neuron, gPos):
+    # PSO velocity update equation
+    for i in range(layers):
+        r1 = random.random()
+        r2 = random.random()
+
+        neuron.vel[i] = neuron.vel[i] + \
+            r1 * (neuron.pPos[i] - neuron.pos[i]) + \
+            r2 * (gPos[i] - neuron.pos[i])
+
+        # Apply velocity limits
+        neuron.vel[i] = max(-max_speed, min(max_speed, neuron.vel[i]))
+
+# Function to update the robot's position
+def update_position(neuron):
+    # PSO position update equation
+    for i in range(layers):
+        neuron.pos[i] = neuron.pos[i] + neuron.vel[i]
+
+# Function to perform the PSO algorithm
+def perform_pso(swarm):
+    # Initialize the global best fitness and position
+    gFit = float('inf')
+    gPos = [0.0] * layers
+
+    # Iterate over the swarm and initialize each robot
+    for i in range(num_robots):
+        # Initialize the position randomly
+        swarm[i].pos = [random.uniform(-2, 2) for _ in range(layers)]
+
+        # Initialize the velocity randomly
+        swarm[i].vel = [random.uniform(-max_speed, max_speed) for _ in range(layers)]
+
+        # Set the initial personal best position and fitness
+        swarm[i].pPos = swarm[i].pos.copy()
+        swarm[i].pFit = calculate_fitness(swarm[i].pos)
+
+        # Update the global best position and fitness if necessary
+        if swarm[i].pFit < gFit:
+            gFit = swarm[i].pFit
+            gPos = swarm[i].pPos.copy()
+
+    # Perform the main PSO loop
+    for iteration in range(max_iterations):
+        # Update the velocity and position for each robot
+        for i in range(num_robots):
+            update_velocity(swarm[i], gPos)
+            update_position(swarm[i])
+
+            # Update personal best position and fitness if necessary
+            fitness = calculate_fitness(swarm[i].pos)
+            if fitness < swarm[i].pFit:
+                swarm[i].pFit = fitness
+                swarm[i].pPos = swarm[i].pos.copy()
+
+                # Update the global best position and fitness if necessary
+                if fitness < gFit:
+                    gFit = fitness
+                    gPos = swarm[i].pos.copy()
+
+        # Print the best fitness value at each iteration
+        print("Iteration:", iteration, "Best Fitness:", gFit)
+
+   
+def run_robot(robot):
+    # Motor instances created
+    name = robot.getName()
+   
+    # Created motor instances
+    left_motor = robot.getDevice('motor1')
+    right_motor = robot.getDevice('motor2')
+    
+    left_motor.setPosition(float('inf'))
+    left_motor.setVelocity(0.0)
+ 
+    right_motor.setPosition(float('inf'))
+    right_motor.setVelocity(0.0)
+   
+   # Create position sensor instances
+   # left_ps = robot.getDevice('pos1')
+   # left_ps.enable(timestep)
+    
+   # right_ps = robot.getDevice('pos2')
+   # right_ps.enable(timestep)
+    ps_values = [0, 0, 0]
+    dist_values = []
+    for i in range(8):
+        sensor = robot.getDevice('ds' + str(i))
+        sensor.enable(timestep)
+        distance_sensors.appent(sensor)
+    
+    # GPS
+  
+    gps = robot.getDevice('gps')
+
+    gps.enable(timestep)
+    
+    rec = robot.getDevice('receiver')
+    emi = robot.getDevice('emitter')
+    
+    swarm = [Robot() for _ in range(num_robots)]
+    perform_pso(swarm)
+    
+    if name == "r1":
+        p1 = gps
+        print("Initializing P1")
+       
+    else: p1 = 0
+    
+    if name == "r2":
+        p2 = gps
+        print("Initializing P2")
+    else: p2 = 0
+
+  
+    #Compute encoder unit
+    radius = 0.03
+    wheeldist = 0.1
+    circum = 2 * 3.14 * radius
+    encoderunit = circum/6.28
+    
+    #Robot pose
+    robot_pose = [0, 0 ,0]  #x,y, theta
+    ps0_values = [0, 0]
+    checkpoint = 0
+    speed = max_speed
+
+    while robot.step(timestep) != -1:
+        
+        
+        #GPS sensor
+        
+        gps_value = gps.getValues()
+        msg = "GPS values:"
+        for each_val in gps_value:
+            msg += "{0:0.2f}  ".format(each_val)
+        print(msg)
+        print("---------")
+        
+        # if name == "r1":
+            # message = "eat cock"   
+            # emi.send(message)
+            
+        # if name == "r2":   
+            # rec.receive(message)
+            # print(message)     
+       
+        # print(gps_value[0], gps_value[1], gps_value[2])
+     
+        # Read value from position sensor
+        # ps_values[0] = left_ps.getValue()
+        # ps_values[1] = right_ps.getValue()
+       
+        
+        # if gps_value[1] >= 1 or gps_value[1] <= 0 :
+            # speed = -speed
+        # if gps_value[1] <= 0:
+            # speed = speed
+        
+        if name == "r1":
+
+            left_motor.setVelocity(speed)
+            right_motor.setVelocity(speed) 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        # print("position sensor values: {} {}".format(ps_values[0],ps_values[1]))
+       
+        # for ind in range(2): 
+            # diff = ps_values[ind] - ps0_values[ind]
+            # if diff < 0.001:
+                # diff = 0
+                # ps_values[ind] = ps0_values[ind]
+            # dist_values[ind] = diff * encoderunit
+       
+       #Computer linear and angular velocity
+        # v = (dist_values[0] + dist_values[1])/2.0
+        # w = (dist_values[0] - dist_values[1])/wheeldist
+       
+        # dt = 1
+        # robot_pose[2] += (w * dt)
+       
+        # vx = v * math.cos(robot_pose[2])
+        # vy = v * math.sin(robot_pose[2])
+        # robot_pose[0] += (vx * dt)
+        # robot_pose[1] += (vy * dt)
+        
+     
+    
+        # print("robot_pose: {}".format(robot_pose))
+        
+       
+        # if ps_values[0] < 5:
+            # checkpoint = 0
+        # if ps_values[0] >= 10 and ps_values[0] <= 20:
+            # checkpoint = 1
+        # if ps_values[0] >= 20 and ps_values[0] <= 30:
+            # checkpoint = 2
+        # if ps_values[0] >= 30 and ps_values[0] <= 40:
+            # checkpoint = 3
+        # if ps_values[0] >= 40 and ps_values[0] >= 5:
+            # checkpoint = 4
+           
+        # print( "Checkpoint = {}".format(checkpoint))
+        
+      
+      
+      
+        # for ind in range(2):
+            # ps0_values[ind] = ps_values[ind]
+        
+        # if (checkpoint == 0):
+            # left_motor.setVelocity(max_speed)
+            # right_motor.setVelocity(max_speed)
+        # elif (checkpoint == 1):
+            # left_motor.setVelocity(0.5 * max_speed)
+            # right_motor.setVelocity(0.5 * max_speed)
+        # elif (checkpoint == 2):
+            # left_motor.setVelocity(1.5* max_speed)
+            # right_motor.setVelocity(1.5 * max_speed)
+        # elif (checkpoint == 3):
+            # left_motor.setVelocity(0.5 * max_speed)
+            # right_motor.setVelocity(0.5 * max_speed)
+        # elif (checkpoint == 4):
+            # left_motor.setVelocity(-2*max_speed)
+            # right_motor.setVelocity(-2*max_speed)
+       
+        
+   
+   
+   
+   
+   
+if __name__== "__main__":
+
+    # create the Robot instance.
+    robot = Robot()
+    run_robot(robot)
+   
+    

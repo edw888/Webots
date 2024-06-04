@@ -1,0 +1,12 @@
+#VRML_SIM R2023a utf8
+# Describe the functionality of your PROTO here.
+
+
+PROTO MyProto [
+  field SFFloat radius 1
+]
+{
+  Sphere {
+    radius IS radius
+  }
+}

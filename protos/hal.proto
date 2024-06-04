@@ -1,0 +1,18 @@
+#VRML_SIM R2023a utf8
+# Describe the functionality of your PROTO here.
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/balls/protos/Ball.proto"
+PROTO MySphereShape [
+  field SFVec3f scale 1 1 1
+] {
+  Shape {
+    appearance Appearance {
+      material Material {
+        diffuseColor 1 0 0  # Red color
+      }
+    }
+    geometry Sphere {
+      radius 1  # Radius of the sphere
+    }
+  }
+}

@@ -1,0 +1,20 @@
+#VRML_SIM R2023a utf8
+# Describe the functionality of your PROTO here.
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/balls/protos/Ball.proto"
+
+PROTO empty_sphere [
+  field SFVec3f translation 0 0 0
+  field SFRotation rotation 0 0 1 0
+  field SFString name "empty_sphere"
+  field SFFloat radius 0.5325 # Defines the radius of the ball.
+
+]
+{
+  empty_sphere {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    radius IS radius
+  }
+}
