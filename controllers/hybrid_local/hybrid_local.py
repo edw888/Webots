@@ -93,7 +93,7 @@ for i in range(-section_range, section_range):
         sections.append(section)
 
 def send_data():
-    data = [num_robots, max_iterations, size, resolution, evaporation_rate, max_phe, frequency]
+    data = ["hybrid", num_robots, max_iterations, size, resolution, evaporation_rate, max_phe, frequency]
     data_str = ','.join(str(i) for i in data)    
     # Set the receiver channel for the supervisor
     emi.setChannel(99)
@@ -303,10 +303,10 @@ def crowding_distance(swarm):
     return crowding_dist
 
 
-def best_positions(neuron, rob_index, fitness):
+def best_positions(neuron, r_ind, fitness):
     # Neighborhood type
     if crowding:
-        crowding_dist = crowding_distance(swarm, rob_index)
+        crowding_dist = crowding_distance(swarm, r_ind)
         neighborhood = sorted(range(num_robots), key=lambda x: crowding_dist[x])[:neighbor_size]   
 
     else:
@@ -330,7 +330,7 @@ def best_positions(neuron, rob_index, fitness):
         # print("Neighborhood best point {} : {:.2f},{:.2f}".format(i,neuron.nPos[i][0],neuron.nPos[i][1]))
 
 # Function to perform the main PSO loop
-def perform_pso(neuron, gps, rob_index, rec):
+def perform_pso(neuron, gps, r_ind, rec):
     global visited_positions, reached_objective, velocity, swarm, pheromone_grid 
     new_phe = np.zeros((map_range, map_range))
     # Randomize the indices each iteration
@@ -358,11 +358,11 @@ def perform_pso(neuron, gps, rob_index, rec):
     fitnesses = calculate_fitness(neuron.pos)
     # Current objective fitness 
     fitness = fitnesses[obj[0]]
-    best_positions(neuron, rob_index, fitnesses)
+    best_positions(neuron, r_ind, fitnesses)
     
     # Check if reached objective
     if fitness <= fit_obj:
-            print("Robot {} reached the objective {:.2f},{:.2f}".format(rob_index, points[obj[0]][0], points[obj[0]][1]))
+            print("Robot {} reached the objective {:.2f},{:.2f}".format(r_ind, points[obj[0]][0], points[obj[0]][1]))
             
             neuron.pFit[obj[0]] = float('inf')  
             obj[0] = (obj[0] + 1) % len(points)
@@ -377,7 +377,7 @@ def perform_pso(neuron, gps, rob_index, rec):
  
     
  
-    print("Position / Velocity  Neuron {} : [{:.3f},{:.3f}] / [{:.3f},{:.3f}] ".format(rob_index, neuron.pos[0], neuron.pos[1], neuron.vel[0], neuron.vel[1]))
+    print("Position / Velocity  Neuron {} : [{:.3f},{:.3f}] / [{:.3f},{:.3f}] ".format(r_ind, neuron.pos[0], neuron.pos[1], neuron.vel[0], neuron.vel[1]))
     print("Fitness / Neighborhood Fitness: {:.2f}  / {:.2f} ".format(fitness, neuron.nFit[obj[0]]))
     print("Personal Best / Neighborhood Best [{:.2f},{:.2f}] / [{:.2f}, {:.2f}]".format(neuron.pPos[obj[0]][0], neuron.pPos[obj[0]][1], neuron.nPos[obj[0]][0], neuron.nPos[obj[0]][1]))
     # Update neighborhood best
@@ -555,7 +555,7 @@ def run_robot(robot):
     
  
            
-            perform_pso(neuron, gps, rob_index, rec)
+            perform_pso(neuron, gps, r_ind, rec)
            
             # pheromone_grid *= (1-evaporation_rate*max_iterations/(max_iterations+iteration*3))
             
@@ -645,7 +645,7 @@ def run_robot(robot):
           #  if reached_objective == True:
             #    left_motor.setVelocity(0)
             #    right_motor.setVelocity(0)
-            #    print("Robot {} reached the origin!".format(rob_index))
+            #    print("Robot {} reached the origin!".format(r_ind))
              #   break
          
             print("Iteration: {} ".format(iteration))
@@ -662,9 +662,9 @@ if __name__== "__main__":
     
     robot = Robot()
     robot_name = robot.getName()
-    rob_index = int(robot_name[1]) 
+    r_ind = int(robot_name[1]) 
     emi = robot.getDevice('emitter')
-    if rob_index == 0:
+    if r_ind == 0:
         send_data()
     for _ in range(delay):
         robot.step(timestep)

@@ -127,7 +127,7 @@ def crowding_distance(swarm):
     return crowding_dist
 
 # Function to perform the main PSO loop
-def perform_pso(neuron, gps, rob_index):
+def perform_pso(neuron, gps, r_ind):
     global reached_objective, velocity, swarm
     # Randomize the indices each iteration
     if random_indices:
@@ -163,16 +163,16 @@ def perform_pso(neuron, gps, rob_index):
     
     # Crowding based neighborhood
     if crowding:
-        crowding_dist = crowding_distance(swarm, rob_index)
+        crowding_dist = crowding_distance(swarm, r_ind)
         neighborhood = sorted(range(num_robots), key=lambda x: crowding_dist[x])[:neighbor_size]                
     else:
         # Will create a list of J and all it's neighbors
         # If odd sized neighborhood, the odd one will be added to the right index
-        index = indices[rob_index]
+        index = indices[r_ind]
         n_indices = indices[index + 1:] + indices[:index]
         neighborhood = n_indices[-neighbor_size // 2:] + n_indices[:neighbor_size // 2]         
-    print("neighbors of {} : {}".format(rob_index, neighborhood))
-    print("Position / Velocity  Neuron {} : [{:.3f},{:.3f}] / [{:.3f},{:.3f}] ".format(rob_index, neuron.pos[0], neuron.pos[1], neuron.vel[0], neuron.vel[1]))
+    print("neighbors of {} : {}".format(r_ind, neighborhood))
+    print("Position / Velocity  Neuron {} : [{:.3f},{:.3f}] / [{:.3f},{:.3f}] ".format(r_ind, neuron.pos[0], neuron.pos[1], neuron.vel[0], neuron.vel[1]))
     print("Fitness / Neighborhood Fitness: {:.2f}  / {:.2f} ".format(fitness, neuron.nFit))
     print("Personal Best / Neighborhood Best [{:.2f},{:.2f}] / [{:.2f}, {:.2f}]".format(neuron.pPos[0], neuron.pPos[1], neuron.nPos[0], neuron.nPos[1]))
     # Update neighborhood best
@@ -232,7 +232,7 @@ def run_robot(robot):
     global reached_objective, velocity
      # Get the robot's name
     robot_name = robot.getName()
-    rob_index = int(robot_name[1]) 
+    r_ind = int(robot_name[1]) 
     # Create the robot swarm
     # swarm = [Neuron() for _ in range(num_robots)]
     prev_position = [0.0, 0.0]  # Previous position of the robot
@@ -310,7 +310,7 @@ def run_robot(robot):
     
           
             
-            perform_pso(neuron, gps, rob_index)
+            perform_pso(neuron, gps, r_ind)
            
         
             Kp = 1  # Angular scaling factor
@@ -398,7 +398,7 @@ def run_robot(robot):
             if reached_objective == True:
                 left_motor.setVelocity(0)
                 right_motor.setVelocity(0)
-                print("Robot {} reached the origin!".format(rob_index))
+                print("Robot {} reached the origin!".format(r_ind))
                 break
          
             print("Iteration: {} ".format(iteration))

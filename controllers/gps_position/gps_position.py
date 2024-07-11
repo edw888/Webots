@@ -85,24 +85,17 @@ def update_velocity(neuron, gPos, velocity):
         cog_vel[i] = r2 * w_cog * (neuron.pPos[i] - neuron.pos[i])/size
         cog_vel[i] = max(-max_speed, min(max_speed, cog_vel[i]))
           
-                
-        # d_max = 0.2
-        # if d_vel > d_max:
-            # d_vel = d_max
-        # elif d_vel < -d_max:
-            # d_vel = -d_max
-        
         desired_vel[i] = velocity[i] * w_ine + cog_vel[i] + soc_vel[i] 
         if desired_vel[i] > neuron.vel[i]:
             neuron.vel[i] = min(neuron.vel[i] + vel_inc, desired_vel[i])
         else:
             neuron.vel[i] = max(neuron.vel[i] - vel_inc, desired_vel[i])
 
-    print("CogVel: {:.2f}, {:.2f}".format(cog_vel[0], cog_vel[1]))
-    print("SocVel: {:.2f}, {:.2f}".format(soc_vel[0], soc_vel[1]))
-    print("Desired Vel: {:.2f}, {:.2f}".format(desired_vel[0], desired_vel[1]))
-    print("Neuron Velocity: {:.2f}, {:.2f}".format(neuron.vel[0], neuron.vel[1]))
-    print("Velocity: {:.2f}, {:.2f}".format(velocity[0], velocity[1]))
+    # print("CogVel: {:.2f}, {:.2f}".format(cog_vel[0], cog_vel[1]))
+    # print("SocVel: {:.2f}, {:.2f}".format(soc_vel[0], soc_vel[1]))
+    # print("Desired Vel: {:.2f}, {:.2f}".format(desired_vel[0], desired_vel[1]))
+    # print("Neuron Velocity: {:.2f}, {:.2f}".format(neuron.vel[0], neuron.vel[1]))
+    # print("Velocity: {:.2f}, {:.2f}".format(velocity[0], velocity[1]))
 
     
 
@@ -328,11 +321,10 @@ def run_robot(robot):
             left_vel, right_vel = avoid_obstacles(ps_values, left_vel, right_vel)
             print ("Velocities: Left  {:.2f} Right {:.2f}".format(left_vel, right_vel))
             # Scales the velocity of the wheels to be proportional to eachother if any is over max_speed
-            max_wheel_velocity = max(abs(left_vel), abs(right_vel))
-            if max_wheel_velocity > max_speed:
-                scale = max_speed / max_wheel_velocity
-                left_vel *= scale
-                right_vel *= scale
+            max_wheel = max(abs(left_vel), abs(right_vel))
+            if max_wheel > max_speed:
+                left_vel *= (max_speed / max_wheel)
+                right_vel *= (max_speed / max_wheel)
 
             print ("Velocities: Left  {:.2f} Right {:.2f}".format(left_vel, right_vel))
     
