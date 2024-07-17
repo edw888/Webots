@@ -5,7 +5,7 @@ import numpy as np
 
 supervisor = Supervisor()
 timestep = 64 
-layers = 2
+dim = 2
 #num_robots = 4
 #size = 5
 #resolution = 0.1
@@ -20,9 +20,7 @@ rec.setChannel(99)
 # Create a list of lists for each robot's position
 
 positions = []
-robot_positions = []
 
-nGbest = []
 
 iteration_timer = 0
 iteration = 0
@@ -30,43 +28,48 @@ ite = 0
 delaysec = 1
 delay = int(delaysec * 200/timestep)
 
-class Supervisor:
-    def __init__(self):
-        self.gPos = [0.0] * layers
-        self.gFit = float('inf')
 
-sp = Supervisor()
 
-for position in positions:
-    robot_positions.append(position)
-# gPos = [[] for _ in range(2)]
-
-def receive_data():
+def receive_config():
     while True:   
         for _ in range(delay):
             supervisor.step(timestep)
-    
-        
         if rec.getQueueLength() > 0:
-            print("Data Received")
-            data_str = rec.getString()
-            # data = [int(i) for i in data_str.split(',')]
-            data = [float(i) if i.isdigit() else i for i in data_str.split(',')]
+            # print("Data Received")
+            data = rec.getString().split(';')
+            config = [float(i) for i in data[:4]]
+            config.append(eval(data[4])) 
+            if len(data) > 5:
+                config.extend([float(i) for i in data[5:]])
+            # Converts the last component in the string to a list
             rec.nextPacket()
-
-            return data
+            return config
            
      
-data = receive_data()  
-print(data)
+config = receive_config()  
+
  
-mode = data[0]
-num_robots = int(data[1]); max_iterations = int(data[2]); size = data[3]
-if len(data)> 4:
-    resolution = data[3]; evaporation_rate = data[4]; max_phe = data[5]; frequency = data[5]
-# print("num_robots, max_iterations, size, resolution: ", num_robots, max_iterations, size, resolution)
+mode = config[0]
+num_robots = int(config[1])
+max_iterations = int(config[2])
+multi = config[3]
+obj = config[4]
+size = config[5]
+
+if len(config)> 6:
+    resolution = config[6]; evaporation_rate = config[7]; max_phe = config[7]; frequency = config[9]
+    # print("num_robots, max_iterations, size, resolution: ", num_robots, max_iterations, size, resolution)
     map_range = int(size/resolution)
     pheromone_grid = np.zeros((map_range, map_range))
+    
+class Supervisor:
+    def __init__(self):
+        self.gPos = [0.0] * dim
+        self.gPos = [[0,0] for _ in range(len(obj))] if not mode == 0 and multi else [0.0] * dim
+        self.gFit = [float('inf')] * len(obj) if not mode == 0 and multi else float('inf')
+
+sp = Supervisor()
+
 
 
 def random_position(supervisor):
@@ -91,24 +94,45 @@ def random_position(supervisor):
             # x = -2
             # y = 2
         trans_field.setSFVec3f([x, y, -0.1])
-        positions.append([x, y])
-        # robot_positions.append(positions[i])
-    print("Random positioning done.")
-def send_position(supervisor, robot_positions):
-  
-    # print("positions:", positions)
-    for i in range(num_robots):
-        if sp.gFit == float('inf'):
-            robot_position = positions[i]
-        else: robot_position = sp.gPos
-        print("Sending from sup", robot_position)
-        
-        position_str = ','.join(str(coord) for coord in robot_position)
-        position_str += ',' + str(sp.gFit)
+        # positions.append([x, y])
+        data = ','.join(str(coord) for coord in [x,y])
+        # data = pos +  ',' + str(float('inf'))
         # Set the receiver channel for each robot
         emi.setChannel(i)
         # Send the position packet to the current robot
-        emi.send(position_str.encode('utf-8'))
+        emi.send(data.encode('utf-8'))
+        # data_pos.append(positions[i])
+    print("Random positioning done.")
+
+# def init_position(data_pos):   
+#     pos = ','.join(str(coord) for coord in data_pos)
+#     data = pos +  ',' + str(sp.gFit) 
+#     for i in range(num_robots):
+#         # print("Sending from sup", data_pos)
+#         pos = ','.join(str(coord) for coord in data_pos)
+#         data = pos +  ',' + str(sp.gFit)
+    
+#         # Set the receiver channel for each robot
+#         emi.setChannel(i)
+#         # Send the position packet to the current robot
+#         emi.send(data.encode('utf-8'))
+
+def send_position(data_pos):
+    if isinstance(data_pos[0], list):
+        data = []
+        for i in range(len(sp.gFit)):
+            pos = ','.join(str(j) for j in data_pos[i])
+            data.append(pos + ',' + str(sp.gFit[i]))  
+        data = ';'. join(data)
+    else: 
+        pos = ','.join(str(j) for j in data_pos)
+        data = pos +  ',' + str(sp.gFit)  
+
+    for i in range(num_robots):
+        # Set the receiver channel for each robot
+        emi.setChannel(i)
+        # Send the position packet to the current robot
+        emi.send(data.encode('utf-8'))
  
 def send_pheromones(pheromone_grid):
     pheromone_str = ','.join(str(i) for j in pheromone_grid for i in j)+ ',1'
@@ -123,20 +147,32 @@ def send_pheromones(pheromone_grid):
     
     
 def receive_position():
-    nGbest = [float(part) for part in rec.getString().split(',')]
-    print("Received ngBest: {:.2f}, {:.2f}, {:.2f}".format(nGbest[0], nGbest[1], nGbest[2]))
+    data = rec.getString()
     rec.nextPacket()
-    print("gfit3",sp.gFit)
-    if nGbest[2] < sp.gFit:
-        sp.gPos = [float(coord) for coord in nGbest[:2]]
-        sp.gFit = nGbest[2]
-        print("gfit4",sp.gFit)
-        # for i in range(num_robots):
-            # sp.gPos[i] = sp.gPos[0]
-        print("Updated sp.gPos supervisor {:.2f}, {:.2f}".format(sp.gPos[0], sp.gPos[1]))
-        print("Updaged gFit supervisor", sp.gFit)
+    if ';' in data:
+        dat = []
+        for d in data.split(';'):
+            dat.append([float(i) for i in d.split(',')]) 
+    else: 
+        dat = [float(i) for i in data.split(',')]
+
+    if isinstance(dat[0], list):
+        for i in range(len(dat)):
+            pos = [dat[i][0], dat[i][1]]
+            fit = dat[i][2]
+            if fit < sp.gFit[i]:
+                sp.gPos[i] = pos.copy()
+                sp.gFit[i] = fit
+    else:
+        pos = [dat[0], dat[1]]
+        fit = dat[2]
+        if fit < sp.gFit:
+            sp.gPos = pos.copy()
+            sp.gFit = fit  
+        # print("Updated gPos supervisor {:.2f}, {:.2f}".format(sp.gPos[0], sp.gPos[1]))
+        # print("Updaged gFit supervisor", sp.gFit)
         
-        send_position(supervisor, sp.gPos)
+      
   
 def receive_pheromones(rec,pheromone_grid):
  
@@ -236,10 +272,11 @@ def test(pheromone_grid):
     # You can also adjust color using sphere.getField("appearance").getField("material").getField("diffuseColor").setSFColor(...)    
             # You can also adjust color using sphere.getField("appearance").getField("material").getField("diffuseColor").setSFColor(...)    
 
+
 random_position(supervisor)
- 
-send_position(supervisor, positions)
-print("Sending position")
+# init_position()
+print("Sending initial position")
+
 while supervisor.step(TIME_STEP) != -1:
  
     #queue_length = rec.getQueueLength()
@@ -254,18 +291,22 @@ while supervisor.step(TIME_STEP) != -1:
  
     
     if rec.getQueueLength() > 0:
-        print("Packet received!", rec.getQueueLength())
-        if mode == "PSO":
+        # print("Packet received!", rec.getQueueLength())
+        if mode <= 2: # PSO modes
             rec_pos = receive_position()
+            send_position(sp.gPos)
             
-        elif mode == "hibrid":
+        else: # Hybrid modes
             rec_phe = receive_pheromones(rec, pheromone_grid)
             pheromone_grid = np.minimum(np.add(pheromone_grid, rec_phe), max_phe)
 
-        ite += 1
-    if mode == "hybrid" and ite == num_robots:
-        end_iteration(ite)
+            ite += 1
+        rec.nextPacket()
+    if ite == num_robots:
         ite = 0
+        if mode > 2:
+            end_iteration(ite)
+           
     
    
     
