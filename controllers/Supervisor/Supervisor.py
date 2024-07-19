@@ -176,14 +176,14 @@ def receive_position():
   
 def receive_pheromones(rec,pheromone_grid):
  
-    pheromone_str = rec.getString()
+    data = rec.getString()
 
     rec.nextPacket()
     # Parse the received string into a 1D array of float values
-    pheromone_values = [float(value) for value in pheromone_str.split(',')]
+    pheromones = [float(value) for value in data.split(',')]
     
     # Convert the 1D array into a 2D numpy array representing the pheromone grid
-    rec_phe = np.array(pheromone_values).reshape((map_range, map_range))
+    rec_phe = np.array(pheromones).reshape((map_range, map_range))
  
 
     return rec_phe

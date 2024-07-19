@@ -165,9 +165,7 @@ def globalPSO_off(con, rob):
                 
             # print("Position {:.2f}, {:.2f}".format(pos[0], pos[1]))  
             # print("Goal {:.2f}, {:s.2f}".format(neuron.pos[0], neuron.pos[1]))
-        
-        
-                
+          
             # Check if robot reached PSO goal
             if distance_check(pos, neuron.pos):
                     reached_objective = True
@@ -176,21 +174,21 @@ def globalPSO_off(con, rob):
                     print("Robot reached goal")
                     break
             
-                        # Read values from distance 
+            # Read values from distance sensors
             ps_values = [sensor.getValue() for sensor in dist_sensors]
             for i in range(8):
                 ps_values[i] = dist_sensors[i].getValue()
             
             des_heading = math.atan2(neuron.pos[1] - pos[1], neuron.pos[0] - pos[0])
-            angle_diff = des_heading - math.atan2(vel[1], vel[0])
+            adiff= des_heading - math.atan2(vel[1], vel[0])
             distance = math.sqrt((neuron.pos[0] - pos[0]) ** 2 + (neuron.pos[1] - pos[1]) ** 2)
-            if angle_diff > math.pi:
-                angle_diff -= 2 * math.pi
-            elif angle_diff < -math.pi:
-                angle_diff += 2 * math.pi
+            if adiff > math.pi:
+                adiff -= 2 * math.pi
+            elif adiff < -math.pi:
+                adiff += 2 * math.pi
         
             Kp = 2;  Kv = 0.5 
-            w_speed = Kp * angle_diff
+            w_speed = Kp * adiff
             l_speed = Kv * distance / (1 + math.exp(-distance))
 
             left_vel, right_vel = fnc.set_velocity(l_speed, w_speed, ps_values)

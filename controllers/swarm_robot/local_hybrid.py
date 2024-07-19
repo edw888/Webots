@@ -18,6 +18,10 @@ delaysec = 1
 delay = int(delaysec * 1000/timestep)
 frequency = 1
 vel_inc = max_speed / 8
+stuck_limit = 5 # Num. of iterations it can be stuck
+exp_count = 5 # Num. of iterations it will explore
+fit_obj = 0.2
+fit_stuck = fit_obj/4
 
 
 # ACO constants
@@ -26,21 +30,11 @@ Q = 0.2
 rad = 4
 phe_rad = int(rad * 0.1/resolution) # Radius of pheromone detection
 max_phe = 2 # Maximum value of pheromones in one section
-
- 
 evaporation_rate = 0.05
-
-# Robot specs
-radius = 0.02
-dist_wheels = 0.052
-max_speed = 6.275 * radius 
 
 # Local pso constants
 num_robots = 4
-neighbor_size = 2
-num_clusters = num_robots // neighbor_size
 indices = list(range(num_robots))  
-fit_obj = 0.2
 n_size = num_robots//3
 
 # Init of variables
@@ -48,8 +42,6 @@ reached_obj = [False]
 iteration = 0
 vel = [0.0] * dim
 desired_vel = [0.0] * dim
-shuffled = False
-visited_positions = []
 sections = []
 
 cat = 0
@@ -60,7 +52,7 @@ iat = 0
 vat = 0
 
 # Configuration
-ncfg = {"random": False}
+cfg = {"random": False, "lateDeposit": False}
 shuffle_freq = 5
 def localHybrid(con, rob):
     robot = rob.robot
@@ -77,8 +69,12 @@ def localHybrid(con, rob):
             self.sPos = [[0.0] * dim for _ in range(len(con.obj))]     
             self.pFit =  [float('inf') for _ in range(len(con.obj))] 
             self.sFit =  [float('inf') for _ in range(len(con.obj))]
+            self.sect = [0.0] * dim
             self.obj = 0
+            self.dynexp = 0
+            self.prevfit = [0,0]
             self.neigh = []
+            self.visited = [0,0]
   
     # Loop to generate sections
     for i in range(-section_range, section_range):
@@ -92,10 +88,22 @@ def localHybrid(con, rob):
     # Calculate section of neuron for pheromone purposes
     def calculate_section(position):
         x, y = position
-        section_x = int(x / resolution)
-        section_y = int(y / resolution)
+        section_x = round(x / resolution)
+        section_y = round(y / resolution)
         return (section_x, section_y)
 
+
+    # Counts number of iterations a particle doesn't improve its position
+    def dynamic_exploration(fitness, neuron):
+        # Prevents being stuck too long
+        fit_dif = abs(fitness - neuron.prevfit[1])
+        if fit_dif < fit_stuck: 
+            neuron.prevfit[0] += 1
+        else: neuron.prevfit[0] = 0
+        if neuron.prevfit[0] == stuck_limit: 
+            neuron.dynexp = exp_count
+            neuron.prevfit[0] = 0
+        neuron.prevfit[1] = fitness
 
     def calculate_fitness(position):
         points_fitness = []
@@ -104,72 +112,70 @@ def localHybrid(con, rob):
             points_fitness.append(fit)
         return points_fitness  
 
+    def update_pheromones(position, visited, new_phe, length = 1):
+        # Calculate squared distances between position and all points
+        distances = []
+        for point in con.obj:
+            dist = sum((p1 - p2) ** 2 for p1, p2 in zip(point, position))
+            distances.append(dist)
 
-    def update_pheromones(position, visited, new_phe, obj):
-        fit_factor = math.sqrt((position[0] -  con.obj[obj][0]) ** 2 + (position[1]- con.obj[obj][1]) ** 2)/(con.size/2)
+        avg_dist = sum(distances) / len(distances)
+
+        # Factor that affects pheromone deposits
+        factor = math.sqrt(avg_dist) / (0.5*con.size/length)
+        # factor = math.sqrt((position[0] -  con.obj[obj][0]) ** 2 + (position[1]- con.obj[obj][1]) ** 2)/(con.size/2)
         x, y = visited[-1] # Retrieve the last visited position
         # Set the pheromones in the grid, from the center of the list (section range).
-        new_phe[x + section_range, y + section_range] = Q/fit_factor
-        # pheromone_grid[x + section_range, y + section_range] = min(pheromone_grid[x + section_range, y + section_range] + Q/fit_factor, max_phe)
-        
-        # send_pheromones(pheromone_grid)
-        return new_phe
+        new_phe[x + section_range, y + section_range] = Q/factor
 
+    def nearby_pheromones(pheromone_grid, sect, direction):
+        x_sect, y_sect = sect
+        phe_mod = [0, 0]
 
+        while True:
+            x0 = max(x_sect - phe_rad + phe_mod[0], -section_range)
+            x1 = min(x_sect + phe_rad + phe_mod[0] + 1, section_range)
+            y0 = max(y_sect - phe_rad + phe_mod[1], -section_range)
+            y1 = min(y_sect + phe_rad + phe_mod[1] + 1, section_range)
 
-    def nearby_pheromones(pheromone_grid, position, direction):
-        section_x, section_y = calculate_section(position)
-        phe_mod = [0,0]
-        # Pheromone radius is created based on section map
-        while(1):    
-            x0 = max(section_x - phe_rad + phe_mod[0], -section_range)
-            x1 = min(section_x + phe_rad - phe_mod[0] + 1, section_range)
-            y0 = max(section_y - phe_rad + phe_mod[1], -section_range)
-            y1 = min(section_y + phe_rad - phe_mod[1] + 1, section_range)
-
-            # If pheromone radius reaches out of the map, moves the radius in the opposite direction to avoid changing radius size and incentive avoiding the edge of the map
-            if x1-x0 < 2 * phe_rad+1:
+            if x1 - x0 < 2 * phe_rad + 1:
                 if x0 == -section_range:
                     phe_mod[0] += 1
                 elif x1 == section_range:
                     phe_mod[0] -= 1
-            elif y1-y0 < 2 * phe_rad+1:
+            elif y1 - y0 < 2 * phe_rad + 1:
                 if y0 == -section_range:
                     phe_mod[1] += 1
                 elif y1 == section_range:
                     phe_mod[1] -= 1
-
             else:
                 break
-        
-        # Extract the relevant portion of the pheromone grid
-        nearby_phe = pheromone_grid[x0 + section_range: x1 + section_range, y0 + section_range: y1 + section_range] 
 
-        # Generate meshgrid for distance and angle calculations
-        x_coords, y_coords = np.meshgrid(np.arange(x0, x1), np.arange(y0, y1))
-        
-        # Compute squared distances instead of taking square roots
-        distances_sq = (x_coords - section_x) ** 2 + (y_coords - section_y) ** 2
-        
-        # Compute angle differences using trigonometric identities
-        angles = np.arctan2(y_coords - section_y, x_coords - section_x)
+        nearby_phe = pheromone_grid[x0 + section_range:x1 + section_range, y0 + section_range:y1 + section_range]
+
+        # Optimize np.any() check
+        if not np.any(nearby_phe):
+            return np.zeros(2)
+
+        # Create coordinate grids manually without np.repeat and np.tile
+        x_coords_flat = np.arange(x0, x1).repeat(y1 - y0)
+        y_coords_flat = np.tile(np.arange(y0, y1), x1 - x0)
+
+        distances_sq = (x_coords_flat - x_sect) ** 2 + (y_coords_flat - y_sect) ** 2
+        # Angle affected more by neuros in its direction. This works well with Hybrid PSO
+        angles = np.arctan2(y_coords_flat - y_sect, x_coords_flat - x_sect)
         angle_diffs = np.pi - np.abs((direction - angles + np.pi) % (2 * np.pi) - np.pi)
-        # x_coords = x_coords.T
-        
-        # Create a mask to exclude the section where the robot is located
-    
-        mask =  (np.abs(x_coords - section_x) > 0) & (np.abs(y_coords - section_y) > 0)  
-        # Apply the mask to the neighborhood
-    
-        neighborhood_masked = nearby_phe * mask
-        
-        # Compute weights using vectorized operations
-        weights = neighborhood_masked / (np.sqrt(distances_sq)+ 1) * (1 - 0.4 * angle_diffs) / phe_rad ** 2
-        
-        # Compute weighted sum to get x and y components of pheromone
-        x_phe = np.sum(weights * (x_coords - section_x))
-        y_phe = np.sum(weights * (y_coords - section_y))
-        return [x_phe, y_phe]
+
+        mask = (x_coords_flat != x_sect) | (y_coords_flat != y_sect)
+        neighborhood_masked = nearby_phe.ravel() * mask
+
+        weights = neighborhood_masked / (np.sqrt(distances_sq) + 1) * (1 - 0.4 * angle_diffs) / phe_rad ** 2
+
+        # Optimize np.sum() operations
+        x_phe = np.dot(weights, (x_coords_flat - x_sect))
+        y_phe = np.dot(weights, (y_coords_flat - y_sect))
+
+        return np.array([x_phe, y_phe])
 
     def update_velocity(neuron, pPos, sPos):
         global cat, sat, pat, eat, sat, iat, vat
@@ -178,7 +184,7 @@ def localHybrid(con, rob):
         w_soc = 0.5 # Weight for global best
         w_phe = 0.5 #prop(1)
         w_exp = prop(1, iteration, con.max_iterations, i=True) 
-
+        if neuron.dynexp: w_exp = 1; w_phe = 0.2; neuron.dynexp -= 1
         soc_vel = [0.0] * dim
         cog_vel = [0.0] * dim
         phe_vel = [0.0] * dim
@@ -186,7 +192,7 @@ def localHybrid(con, rob):
         ine_vel = [0-0] * dim
         direction = math.atan2(neuron.vel[1], neuron.vel[0])
         
-        phe_vel = nearby_pheromones(pheromone_grid, neuron.pos, direction) #* w_phe * r4
+        phe_vel = nearby_pheromones(pheromone_grid, neuron.sect, neuron.pos, direction) #* w_phe * r4
 
         r1 = rnd.random()
         r2 = rnd.random()
@@ -229,7 +235,8 @@ def localHybrid(con, rob):
     def update_position(neuron, gps):
         gps_value = gps.getValues()
         neuron.pos[0] = gps_value[0]
-        neuron.pos[1] = gps_value[1]  
+        neuron.pos[1] = gps_value[1]
+        neuron.sect = calculate_section(neuron.pos)  
 
     # Initializes the algorithm
     def init_pso(neuron):
@@ -243,29 +250,34 @@ def localHybrid(con, rob):
    
     # Function to perform the main PSO loop
     def perform_pso(neuron, gps, rob_index):
-        global visited_positions, reached_obj, vel, shuffled, pheromone_grid 
+        global reached_obj, vel, shuffled, pheromone_grid 
         new_phe = np.zeros((map_range, map_range))
+        shuffled = False
+        active = not(iteration % frequency) 
+
         # Randomize the indices each iteration
-        if ncfg["random"]:
+        if cfg["random"]:
             if iteration % shuffle_freq == 0:
                 rnd.shuffle(indices)
                 shuffled = True
     
         # Functions to update position and velocity of neuron 
-        if (iteration % frequency) == 0:
+        if active:
             update_velocity(neuron, neuron.pPos[neuron.obj], neuron.sPos[neuron.obj]) 
-        section = update_position(neuron, gps)
-        visited_positions.append(section)
+        update_position(neuron, gps)
+        neuron.visited.append(neuron.sect)
 
-        new_phe = update_pheromones(neuron.pos, visited_positions, new_phe, neuron.obj)
-        send_pheromones(new_phe, rob.emi)
+        if not cfg["lateDeposit"]:
+            pos = neuron.visited[-1]
+            new_phe = update_pheromones(neuron.pos, new_phe)
+            send_pheromones(new_phe, rob.emi)
 
         fitnesses = calculate_fitness(neuron.pos)
         # Current objective fitness 
         fitness = fitnesses[neuron.obj]
         
         if shuffled:
-            fnc.update_neigh(ncfg, rob, neuron, indices, n_size)
+            fnc.update_neigh(cfg, rob, neuron, indices, n_size)
 
         for i in range(len(con.obj)):
                 best = (neuron.sFit[i], neuron.pFit[i], neuron.sPos[i], neuron.pPos[i]) 
@@ -276,27 +288,34 @@ def localHybrid(con, rob):
                     fnc.lsend_position(rob.emi, neuron, data)
                     print("Send position", rob.name)
 
+        dynamic_exploration(fitness, neuron)
+
         # Check if reached objective
         if fitness <= fit_obj:
                 print("Robot {} reached the objective {:.2f},{:.2f}".format(rob_index, con.obj[neuron.obj][0], con.obj[neuron.obj][1]))
-                
+                if cfg["lateDeposit"]:
+                    pos = neuron.visited.copy()
+                    # Length of trip from starting point to obj
+                    length = len(pos)*resolution/(con.size/2)
+                    new_phe = update_pheromones(neuron.pos, neuron.visited, new_phe, length)
+                    send_pheromones(new_phe, rob.emi)
                 neuron.pFit[neuron.obj] = float('inf')  
                 neuron.obj = (neuron.obj + 1) % len(con.obj)
                 
-                visited_positions = []
+                neuron.visited = []
 
         return reached_obj
 
     def send_pheromones(pheromone_grid, emi):
     
         # Convert the pheromone grid to a string
-        pheromone_str = ','.join(str(i) for j in pheromone_grid for i in j)
+        data = ','.join(str(i) for j in pheromone_grid for i in j)
         
         # Set the receiver channel for the supervisor
         emi.setChannel(99)
         
         # Send the pheromone grid packet to the supervisor
-        emi.send(pheromone_str.encode('utf-8'))
+        emi.send(data.encode('utf-8'))
 
     
     def receive_pheromones(rec_str):
@@ -339,11 +358,12 @@ def localHybrid(con, rob):
                 motors[1].setVelocity(0)
                 print("Robot {} reached the origin!".format(rob.ind))
                 break
+            
 
-            # Receiving best positions from supervisor
+            # Receiving best positions from neighbors
             if rob.rec.getQueueLength() > 0:
                 data = fnc.receive_position(rob.rec)
-                neuron.sFit, neuron.sPos = fnc.best_rec(data, neuron.sFit, neuron.sPoss)
+                neuron.sFit, neuron.sPos = fnc.best_rec(data, neuron.sFit, neuron.sPos)
         
             perform_pso(neuron, gps)
         
@@ -358,4 +378,4 @@ def localHybrid(con, rob):
             else:
                 print("Iteration: {}.  {} sFit: {:.3f}  sPos [{:.2f},{:.2f}]".format(iteration, rob.name, neuron.sFit, neuron.sPos[0], neuron.sPos[1]))
             
-run_robot()
+    run_robot()

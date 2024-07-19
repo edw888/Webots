@@ -18,13 +18,14 @@ delaysec = 1
 delay = int(delaysec * 1000/timestep)
 frequency = 1
 vel_inc = max_speed / 8
+fit_obj = 0.2
+stuck_limit = 5 # Num. of iterations it can be stuck
+exp_count = 5 # Num. of iterations it will explore
+fit_stuck = fit_obj/4
 
 # Local pso constants
 num_robots = 4  
-neighbor_size = 2
-num_clusters = num_robots // neighbor_size
 indices = list(range(num_robots))  
-fit_obj = 0.2
 n_size = num_robots//3
 
 
@@ -32,7 +33,7 @@ n_size = num_robots//3
 reached_obj = False
 iteration = 0
 vel = [0.0] * dim
-desired_vel = [0.0] * dim
+des_vel = [0.0] * dim
 shuffled = False
 
 # Configurations
@@ -42,7 +43,6 @@ shuffle_freq = 5
 
 def localPSO(con, rob):
     robot = rob.robot 
-    
 
     class Neuron:
         def __init__(self):
@@ -53,6 +53,8 @@ def localPSO(con, rob):
             self.sFit = [float('inf')] * len(con.obj) if any(cfg.values()) else float('inf')
             self.sPos = [[0.0] * dim for _ in range (len(con.obj))] if any(cfg.values())  else [0.0] * dim
             self.obj = 0
+            self.dynexp = 0
+            self.prev_fit = [0,0]
             self.neigh = []
 
     def calculate_fitness(position):
@@ -68,9 +70,8 @@ def localPSO(con, rob):
         w_ine = 1
         w_cog = 1.5
         w_soc = 1
-
         w_exp = prop(1, iteration, con.max_iterations, i=True) 
-        
+        if neuron.dynexp: w_exp = 1; neuron.dynexp -= 1;          
         soc_vel = [0.0] * dim
         cog_vel = [0.0] * dim
         exp_vel = [0.0] * dim
@@ -87,12 +88,24 @@ def localPSO(con, rob):
             cog_vel[i] = r2 * w_cog * (pPos[i] - neuron.pos[i]) / (con.size/2)
             # cog_vel[i] = max(-max_speed, min(max_speed, cog_vel[i]))
             exp_vel[i] = r3 * w_exp * max_speed
-            desired_vel[i] = vel[i] * w_ine + cog_vel[i] + soc_vel[i] + exp_vel[i] 
-            if desired_vel[i] > neuron.vel[i]:
-                neuron.vel[i] = min(neuron.vel[i] + vel_inc, desired_vel[i])
+            des_vel[i] = vel[i] * w_ine + cog_vel[i] + soc_vel[i] + exp_vel[i] 
+            if des_vel[i] > neuron.vel[i]:
+                neuron.vel[i] = min(neuron.vel[i] + vel_inc, des_vel[i])
             else:
-                neuron.vel[i] = max(neuron.vel[i] - vel_inc, desired_vel[i])
+                neuron.vel[i] = max(neuron.vel[i] - vel_inc, des_vel[i])
         # fnc.post_vel(soc_vel, cog_vel, vel, neuron.vel)
+    
+    # Counts number of iterations a particle doesn't improve its position
+    def dynamic_exploration(fitness, neuron):
+        # Prevents being stuck too long
+        fit_dif = abs(fitness - neuron.prevfit[1])
+        if fit_dif < fit_stuck: 
+            neuron.prevfit[0] += 1
+        else: neuron.prevfit[0] = 0
+        if neuron.prevfit[0] == stuck_limit: 
+            neuron.dynexp = exp_count
+            neuron.prevfit[0] = 0
+        neuron.prevfit[1] = fitness
 
     def update_position(neuron, gps):
         gps_value = gps.getValues()
@@ -115,7 +128,10 @@ def localPSO(con, rob):
 
     # Function to perform the main PSO loop
     def perform_pso(neuron, gps):
-        global reached_obj, vel, shuffled
+        global reached_obj, vel
+
+        shuffled = False
+        active = not(iteration % frequency)
         # Randomize the indices each iteration
         if ncfg["random"]:
             if iteration % shuffle_freq == 0:
@@ -123,8 +139,8 @@ def localPSO(con, rob):
                 shuffled = True
             
         # Functions to update position and velocity of neuron 
-        if (iteration % frequency) == 0:
-            update_velocity(neuron, neuron.pPos[neuron.obj], neuron.sPos[neuron.obj]) if cfg["cycle"]or cfg["multi"] else update_velocity(neuron, neuron.pPos, neuron.sPos) 
+        if active:
+            update_velocity(neuron, neuron.pPos[neuron.obj], neuron.sPos[neuron.obj]) if any(cfg.values()) else update_velocity(neuron, neuron.pPos, neuron.sPos) 
         update_position(neuron, gps)
 
         # Calculation of fitness
@@ -160,15 +176,15 @@ def localPSO(con, rob):
                     print("Send position", rob.name)
 
         # Check if different modes reached an objective
-        if cfg["cycle"] and fitness <= fit_obj:
-            neuron.pFit[neuron.obj] = float('inf')  
-            neuron.obj = (neuron.obj + 1) % len(con.obj)
-        elif fitness <= fit_obj:
-            print("Robot {} reached the objective".format(rob.ind))
-            reached_obj = True 
+        if fitness <= fit_obj:
+            if cfg["cycle"]:
+                neuron.pFit[neuron.obj] = float('inf')  
+                neuron.obj = (neuron.obj + 1) % len(con.obj)
+            else:
+                print("Robot {} reached the objective".format(rob.ind))
+                reached_obj = True 
         
         # fnc.post_PSO(fitness, neuron.sFit, neuron, neuron.sPos)
-        return reached_obj
     
     def run_robot():
         global reached_obj, vel
@@ -191,11 +207,11 @@ def localPSO(con, rob):
                 motors[1].setVelocity(0)
                 print("Robot {} reached the origin!".format(rob.ind))
                 break
-
-            # Receiving best positions from supervisor
+                        
+            # Receiving best positions from neighbors
             if rob.rec.getQueueLength() > 0:
                 data = fnc.receive_position(rob.rec)
-                neuron.sFit, neuron.sPos = fnc.best_rec(data, neuron.sFit, neuron.sPoss)
+                neuron.sFit, neuron.sPos = fnc.best_rec(data, neuron.sFit, neuron.sPos)
         
             perform_pso(neuron, gps)
         

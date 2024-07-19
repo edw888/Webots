@@ -16,6 +16,9 @@ delaysec = 1
 delay = int(delaysec * 1000/timestep)
 vel_inc = max_speed/8
 fit_obj = 0.2
+stuck_limit = 5 # Num. of iterations it can be stuck
+exp_count = 5 # Num. of iterations it will explore
+fit_stuck = fit_obj/4
 
 # Init of variables
 iteration = 0
@@ -38,6 +41,8 @@ def globalPSO(con, rob):
             self.sFit = [float('inf')] * len(con.obj) if any(cfg.values()) else float('inf')
             self.sPos = [[0.0] * dim] * len(con.obj) if any(cfg.values())  else [0.0] * dim
             self.obj = 0
+            self.dynexp = 0
+            self.prevfit = [0,0]
 
     # Calculate the fitness of particle with regards to all points
     def calculate_fitness(position):
@@ -47,6 +52,19 @@ def globalPSO(con, rob):
             points_fitness.append(fit)  
         return points_fitness
 
+    # Counts number of iterations a particle doesn't improve its position
+    def dynamic_exploration(fitness, neuron):
+        # Prevents being stuck too long
+        fit_dif = abs(fitness - neuron.prevfit[1])
+        if fit_dif < fit_stuck: 
+            neuron.prevfit[0] += 1
+        else: neuron.prevfit[0] = 0
+        if neuron.prevfit[0] == stuck_limit: 
+            neuron.dynexp = exp_count
+            neuron.prevfit[0] = 0
+        neuron.prevfit[1] = fitness
+
+
     # Function to update the robot's velocity
     def update_velocity(neuron, pPos, sPos):
 
@@ -54,7 +72,8 @@ def globalPSO(con, rob):
         w_cog = 1.2  # Weight for personal best
         w_soc = 1.2  # Weight for global best
         w_exp = prop(1, iteration, con.max_iterations, i=True) 
-        
+
+        if neuron.dynexp: w_exp = 1; neuron.dynexp -= 1
         soc_vel = [0.0] * dim
         cog_vel = [0.0] * dim
         exp_vel = [0.0] * dim
@@ -96,10 +115,16 @@ def globalPSO(con, rob):
 
         if any(cfg.values()):
             neuron.pPos[0]  = neuron.pos.copy()
-        else:   neuron.pPos = neuron.pos.copy()
+            for i in range(len(con.obj)):
+                neuron.pPos[i] = neuron.pos.copy()
+                neuron.sPos[i] = neuron.pos.copy()
+        else:   
+            neuron.pPos = neuron.pos.copy()
+            neuron.sPos = neuron.pos.copy()
 
     def perform_pso(neuron, gps):
         global reached_obj, vel    
+        
         update_velocity(neuron, neuron.pPos[neuron.obj], neuron.sPos[neuron.obj]) if any(cfg.values()) else update_velocity(neuron, neuron.pPos, neuron.sPos) 
         update_position(neuron, gps)
         # Update personal best position and fitness if necessary
@@ -131,7 +156,9 @@ def globalPSO(con, rob):
                     data = fnc.create_str(neuron.sPos, neuron.sFit)
                     fnc.send_position(rob.emi, data)
                     print("Send position", rob.name)
-
+        
+        dynamic_exploration(fitness, neuron)
+        
         # Check if different modes reached an objective
         if cfg["cycle"] and fitness <= fit_obj:
             neuron.pFit[neuron.obj] = float('inf')  
