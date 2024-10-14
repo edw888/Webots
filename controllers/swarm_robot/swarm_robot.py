@@ -4,7 +4,7 @@ import random
 from fnc import rec_init
 
 
-mode = 0
+mode = 1
 
 if mode == 0:
     from gpso_offline import globalPSO_off as algo
@@ -34,8 +34,8 @@ class con:
     num_robots = 4
     size = 5
     # obj = [[-2.5,0], [2.5,0], [0,-2.5], [0,2.5] ]
-    # obj = [[-1,0], [1,0], [0,-1], [0,1] ]
-    obj = [[0,0]]
+    obj = [[-1,0], [1,0], [0,-1], [0,1] ]
+    # obj = [[0,0]]
     multi = 1 if len(obj)>1 else 0
   
 

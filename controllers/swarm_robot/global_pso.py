@@ -129,7 +129,6 @@ def globalPSO(con, rob):
         update_position(neuron, gps)
         # Update personal best position and fitness if necessary
         fitnesses = calculate_fitness(neuron.pos)
-       
         if cfg["multi"]:
             mF = min(fitnesses)
             mG = min(neuron.sFit)
@@ -156,7 +155,6 @@ def globalPSO(con, rob):
                     data = fnc.create_str(neuron.sPos, neuron.sFit)
                     fnc.send_position(rob.emi, data)
                     print("Send position", rob.name)
-        
         dynamic_exploration(fitness, neuron)
         
         # Check if different modes reached an objective

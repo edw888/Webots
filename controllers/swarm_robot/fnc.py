@@ -71,9 +71,13 @@ def best_rec(data, sFit, sPos):
     else:
         pos = [data[0], data[1]]
         fit = data[2]
+        print(data)
+        print(fit)
+        print(sFit)
         if fit != float('inf') and fit < sFit:
             sPos = pos.copy()
             sFit = fit  
+    print("papo4", sFit)
     return sFit, sPos
 
 
@@ -104,11 +108,10 @@ def best_position(pos, best, fitness):
     if fitness < pFit:
         pFit = fitness
         pPos = pos.copy()
-    if fitness < sFit:
+    if fitness < sFit:  
         sFit = fitness
-        sPos = pos.copy()    
+        sPos = pos.copy()
     new_best = (sFit, pFit, sPos, pPos)
-
     return new_best
 
 def update_neigh(rob, neuron, indices, n_size):  
@@ -153,7 +156,6 @@ def diff_speed(neuron, motors, dist_sensors):
     
     Kp = 2; Kv = 0.5
     # reset_prob = 0.1  # Chance  w_speed resets
-
     # max_random_component = 0.1  # Experiment with different values
     
     l_speed = math.sqrt(neuron.vel[0]**2 + neuron.vel[1]**2)*Kv
@@ -172,10 +174,8 @@ def set_velocity(l_speed, w_speed, ps_values):
 
     left_vel = l_speed - (w_speed * dist_wheels) / 2 
     right_vel = l_speed + (w_speed * dist_wheels) / 2
-
     # Obstacle avoidance check    
     left_vel, right_vel = avoid_obstacles(max_speed, ps_values, left_vel, right_vel)
-    # print ("Velocities: Left  {:.2f} Right {:.2f}".format(left_vel, right_vel))
     # Scales the velocity of the wheels to be proportional to eachother if any is over max_speed
     max_wheel = max(abs(left_vel), abs(right_vel))
     if max_wheel > max_speed:
